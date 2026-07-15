@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ECG Biometric Authentication System Architecture</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 18px;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        max-width: 900px;
+        width: 100%;
+      }
+      h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 30px;
+        font-weight: 600;
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+    <!-- Load Mermaid.js -->
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          fontSize: "20px",
+          primaryColor: "#e0f7fa",
+          primaryTextColor: "#333333",
+          primaryBorderColor: "#00838f",
+          lineColor: "#546e7a",
+          secondaryColor: "#f1f8e9",
+          tertiaryColor: "#ffffff",
+        },
+        flowchart: {
+          curve: "basis",
+          padding: 20,
+        },
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>System Architecture Flowchart</h1>
+      <div class="mermaid">
+        flowchart TD %% Define professional color classes classDef hardware
+        fill:#34495e,stroke:#2c3e50,stroke-width:2px,color:#ecf0f1,rx:8px,ry:8px;
+        classDef process
+        fill:#3498db,stroke:#2980b9,stroke-width:2px,color:#ffffff,rx:8px,ry:8px;
+        classDef model
+        fill:#9b59b6,stroke:#8e44ad,stroke-width:2px,color:#ffffff,rx:8px,ry:8px;
+        classDef data
+        fill:#2ecc71,stroke:#27ae60,stroke-width:2px,color:#ffffff,rx:8px,ry:8px;
+        classDef match
+        fill:#f1c40f,stroke:#f39c12,stroke-width:2px,color:#333333,rx:8px,ry:8px;
+        classDef result
+        fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#ffffff,rx:8px,ry:8px;
+        classDef db
+        fill:#1abc9c,stroke:#16a085,stroke-width:2px,color:#ffffff,rx:8px,ry:8px;
+        subgraph Live Phase [Live Authentication Flow] direction TB A[Hardware
+        Boundary<br />ECG Sensor + Pico]:::hardware --> B[Signal Processing<br />Preprocessing
+        Pipeline]:::process B --> C[Neural Network<br />1D CNN Model]:::model C
+        --> D[Latent Space<br />Embedding Vector]:::data D --> E{Cosine
+        Distance<br />Similarity Comparison}:::match E --> G[Final Output<br />Authentication
+        Result]:::result F[(Enrolled Profiles<br />Stored Embeddings DB)]:::db
+        <--> E end subgraph Training Phase [Offline Training Flow] direction TB
+        H[(PhysioNet<br />PTBDB Dataset)]:::db --> I[Metric Learning<br />Training
+        Triplet/Siamese]:::process I --> J[Weights & Biases<br />Trained
+        Model]:::model end %% Connect training back to live phase J -.->|Deploy
+        edge model| C style Live Phase
+        fill:#f8f9fa,stroke:#bdc3c7,stroke-width:2px,stroke-dasharray: 5
+        5,rx:10px style Training Phase
+        fill:#f8f9fa,stroke:#bdc3c7,stroke-width:2px,stroke-dasharray: 5
+        5,rx:10px
+      </div>
+    </div>
+  </body>
+</html>

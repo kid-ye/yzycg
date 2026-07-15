@@ -1,5 +1,18 @@
+# Environments / caches
 .venv/
-data/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Datasets (large, downloaded separately)
+data/
+
+# Generated artifacts
+results/*.png
+results/*.npz
+results/*.pth
+*.egg-info/
+
+# Local tooling
+.agents/
+.claude/

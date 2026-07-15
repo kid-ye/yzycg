@@ -20,8 +20,8 @@ except ImportError:
 
 # --- Configuration ---
 BAUD_RATE = 115200       # Adjust to match your Arduino/MAX30003 sketch
-SAMPLE_RATE = 200        # Target sample rate (Hz)
-BUFFER_SIZE = 1000       # 5 seconds @ 200Hz
+SAMPLE_RATE = 125        # Actual Pico rate (~125 Hz with 8ms delay)
+BUFFER_SIZE = 1000       # 8 seconds @ 125Hz for 1000 samples
 Serial_Port = None       # Will be selected continuously
 
 # Global control
@@ -168,7 +168,7 @@ def authenticate_live(auth, user_id="Owner"):
                 seg = np.array(current_buffer)
                 
                 # Check authentication
-                is_match, score = auth.authenticate(user_id, seg, threshold=0.70)
+                is_match, score = auth.authenticate(user_id, seg, threshold=0.50)
                 
                 status_icon = "🔓 ACCESS GRANTED" if is_match else "🔒 ACCESS DENIED"
                 print(f"Score: {score:.4f}  |  {status_icon}")
@@ -178,8 +178,8 @@ def authenticate_live(auth, user_id="Owner"):
 
 if __name__ == "__main__":
     # 1. Init Model
-    if not os.path.exists("ecg_model.pth"):
-        print("Error: Model not found. Please run src/train.py first.")
+    if not os.path.exists("models/ecg_model.pth"):
+        print("Error: Model not found. Please run scripts/run_all.py first.")
         sys.exit(1)
         
     auth = ECGAuthenticator()

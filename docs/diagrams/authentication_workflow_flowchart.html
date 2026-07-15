@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ECG Authentication Workflow</title>
+    <style>
+      body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #ffffff;
+          margin: 0;
+          padding: 40px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+      }
+      .container {
+          background-color: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+          padding: 40px;
+          width: 100%;
+          max-width: 1200px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+      }
+      h1 {
+          color: #000000;
+          text-align: center;
+          margin-top: 0;
+          margin-bottom: 25px;
+          font-weight: 800;
+          font-size: 3rem;
+      }
+      .mermaid {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+      }
+      .mermaid svg {
+          width: 100%;
+          height: auto;
+          /* Remove max-height that causes squishing/overlapping */
+          /* Enforce high-contrast text for document screenshots */
+          font-family: 'Segoe UI', Arial, sans-serif !important;
+      }
+      .mermaid svg text {
+          font-weight: bold !important;
+          fill: #000000 !important;
+      }
+          height: auto;
+      }
+    </style>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          fontSize: "32px",
+          fontFamily: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif",
+          primaryColor: "#e0f7fa",
+          primaryTextColor: "#2c3e50",
+          primaryBorderColor: "#00838f",
+          lineColor: "#546e7a",
+        },
+        flowchart: {
+          curve: "basis",
+          padding: 30,
+        },
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>ECG Authentication Workflow</h1>
+      <div class="mermaid">
+        flowchart TD classDef enroll
+        fill:#e8f5e9,stroke:#2e7d32,stroke-width:4px,color:#000,rx:8px,ry:8px;
+        classDef auth
+        fill:#e3f2fd,stroke:#1565c0,stroke-width:4px,color:#000,rx:8px,ry:8px;
+        classDef data
+        fill:#f3e5f5,stroke:#6a1b9a,stroke-width:4px,color:#000,rx:8px,ry:8px;
+        classDef decision
+        fill:#fff8e1,stroke:#f57f17,stroke-width:4px,color:#000,rx:8px,ry:8px;
+        classDef db
+        fill:#eceff1,stroke:#37474f,stroke-width:4px,color:#000,rx:8px,ry:8px;
+        classDef result
+        fill:#ffebee,stroke:#c62828,stroke-width:4px,color:#000,rx:20px,ry:20px;
+        subgraph P1 [Phase 1: Identity Enrollment] direction TB E1[Capture
+        Baseline<br />ECG Waves]:::enroll E2[1D-CNN Encoder<br />Model]:::data
+        E3[(Enrolled<br />Profiles DB)]:::db E1 -->|Preprocessed<br />Signal| E2
+        E2 -->|Reference<br />Embedding Vectors| E3 end subgraph P2 [Phase 2:
+        Live Authentication] direction TB A1[User Requests Access<br />Claims
+        'User_ID']:::auth A2[Live Hardware Capture<br />Raspberry Pi<br />&
+        MAX30003]:::auth A3[1D-CNN Encoder<br />Model]:::data A4[Live Subject<br />Embedding
+        Vector]:::data A1 --> A2 -->|1000-sample<br />buffer| A3 --> A4 end
+        subgraph P3 [Phase 3: Mathematical Mapping] direction TB M1[Fetch
+        Enrolled Vectors<br />for 'User_ID']:::db M2{Calculate Pearson<br />Correlation<br />Live
+        vs Enrolled}:::decision M3[Calculate Mean<br />Mapping Score]:::decision
+        M4{Mean Score > <br />0.70 Threshold?}:::decision M1 --> M2 M2 --> M3 M3
+        --> M4 end %% Cross-phase connections E3 -.->|Lookup Identity| M1 A4
+        -->|Compare| M2 M4 -->|Yes| R1([Authentication PASS<br />Access
+        Granted]):::result M4 -->|No / User Not Found| R2([Authentication
+        FAIL<br />Access Denied]):::result style P1
+        fill:#f9ebea,stroke:#d98880,stroke-width:2px,stroke-dasharray: 5
+        5,rx:10px style P2
+        fill:#ebf5fb,stroke:#7fb3d5,stroke-width:2px,stroke-dasharray: 5
+        5,rx:10px style P3
+        fill:#fef5e7,stroke:#f8c471,stroke-width:2px,stroke-dasharray: 5
+        5,rx:10px
+      </div>
+    </div>
+  </body>
+</html>

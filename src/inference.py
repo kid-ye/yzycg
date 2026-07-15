@@ -11,7 +11,7 @@ import src.preprocessing as pp
 from src.model import TripletECGModel
 
 class ECGAuthenticator:
-    def __init__(self, model_path="ecg_model.pth", device=None):
+    def __init__(self, model_path="models/ecg_model.pth", device=None):
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
         
@@ -63,7 +63,7 @@ class ECGAuthenticator:
             print(f"Auto-enrolled {count_enrolled} users.")
             self.save_profiles()
 
-    def save_profiles(self, path="enrolled_profiles.pt"):
+    def save_profiles(self, path="models/enrolled_profiles.pt"):
         try:
             torch.save(self.enrolled_embeddings, path)
             print(f"Profiles saved to {path} ({len(self.enrolled_embeddings)} users).")
@@ -72,7 +72,7 @@ class ECGAuthenticator:
             print(f"Error saving profiles: {e}")
             return False
 
-    def load_profiles(self, path="enrolled_profiles.pt"):
+    def load_profiles(self, path="models/enrolled_profiles.pt"):
         if os.path.exists(path):
             try:
                 loaded = torch.load(path, map_location=self.device)
@@ -89,32 +89,19 @@ class ECGAuthenticator:
 
     def preprocess_signal(self, raw_signal):
         """
-        Takes a raw signal array (any shape that can be flattened), 
-        applies filtering and normalization matching training.
-        Returns: Tensor (1, 1, 1000) on device or None if invalid.
+        Bandpass filter + normalize to [-512, 512] (paper Section II-A).
+        Returns Tensor (1, 1, 1000) on device, or None if signal too short.
         """
-        # Ensure we work with flat 1D array first
         sig_flat = np.array(raw_signal).flatten()
-        
-        # Note: If signal is less than 1000, we can't proceed for fixed architecture
         if len(sig_flat) < 1000:
             return None
-            
-        # Crop to first 1000 for consistency with training random crops
-        # In a real system, you might slide a window or take the best segment.
-        sig_1000 = sig_flat[:1000]
-        
-        # 1. Bandpass Filter (0.5-40Hz)
-        filtered = pp.bandpass_filter(sig_1000, fs=200)
-        
-        # 2. Normalize (Standardization)
-        std_val = np.std(filtered)
-        if std_val == 0:
+
+        segments = pp.preprocess(sig_flat, fs=200, method='npd')
+        if not segments:
             return None
-        normalized = (filtered - np.mean(filtered)) / (std_val + 1e-6)
-        
-        # 3. To Tensor (Batch=1, Channels=1, Length=1000)
-        tensor_sig = torch.tensor(normalized, dtype=torch.float32).reshape(1, 1, 1000)
+
+        seg = segments[0]  # shape (1000,)
+        tensor_sig = torch.tensor(seg, dtype=torch.float32).reshape(1, 1, 1000)
         return tensor_sig.to(self.device)
 
     def get_embedding(self, signal_tensor):
@@ -125,54 +112,52 @@ class ECGAuthenticator:
 
     def enroll_user(self, user_id, signal_list):
         """
-        Enroll a user with a list of raw signal segments.
-        Updates self.enrolled_embeddings[user_id] with the mean vector.
+        Enroll a user: store all embedding vectors in the database.
+        self.enrolled_embeddings[user_id] = list of (1, 2304) tensors.
         """
         embeddings = []
         for sig in signal_list:
             tensor_sig = self.preprocess_signal(sig)
             if tensor_sig is not None:
-                emb = self.get_embedding(tensor_sig)
+                emb = self.get_embedding(tensor_sig)  # (1, 2304)
                 embeddings.append(emb)
-        
+
         if not embeddings:
             print(f"Failed to enroll {user_id}: No valid signals.")
             return False
-            
-        # Calculate Mean Embedding
-        stacked = torch.stack(embeddings)
-        mean_emb = torch.mean(stacked, dim=0)
-        
-        self.enrolled_embeddings[user_id] = mean_emb
+
+        self.enrolled_embeddings[user_id] = embeddings
         print(f"User '{user_id}' enrolled with {len(embeddings)} samples.")
         return True
 
+    @staticmethod
+    def _pearson(x, y):
+        """Pearson Correlation Coefficient between two 1-D tensors (Eqn 1)."""
+        vx = x - x.mean()
+        vy = y - y.mean()
+        return (vx @ vy / (vx.norm() * vy.norm() + 1e-8)).item()
+
     def authenticate(self, user_id, raw_signal, threshold=0.70):
         """
-        Compare a live signal against the enrolled user's mean embedding.
-        Returns: (is_match (bool), correlation_score (float))
+        Compare live signal against all stored embeddings for user_id.
+        Mapping score D(X,Y) = mean Pearson correlation across enrolled vectors.
+        Returns: (is_authenticated (bool), mapping_score (float))
         """
         if user_id not in self.enrolled_embeddings:
-            print(f"User {user_id} not known.")
+            print(f"User '{user_id}' not enrolled.")
             return False, 0.0
-            
+
         tensor_sig = self.preprocess_signal(raw_signal)
         if tensor_sig is None:
             return False, 0.0
-            
-        live_emb = self.get_embedding(tensor_sig)
-        ref_emb = self.enrolled_embeddings[user_id]
-        
-        # Pearson Correlation
-        vx = live_emb - torch.mean(live_emb)
-        vy = ref_emb - torch.mean(ref_emb)
-        
-        cost = torch.sum(vx * vy)
-        denom = torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2))
-        
-        similarity = (cost / (denom + 1e-8)).item()
-        
-        return similarity > threshold, similarity
+
+        live_emb = self.get_embedding(tensor_sig).squeeze()   # (2304,)
+        ref_embeddings = self.enrolled_embeddings[user_id]    # list of (1, 2304)
+
+        scores = [self._pearson(live_emb, ref.squeeze()) for ref in ref_embeddings]
+        mapping_score = float(np.mean(scores))
+
+        return mapping_score > threshold, mapping_score
 
 # --- Helper to load test data ---
 def get_random_segments(patient_folder, count=5):

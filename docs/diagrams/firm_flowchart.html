@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Firmware Flowchart for ECG Acquisition</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #ffffff;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        width: 100%;
+        max-width: 1600px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      h1 {
+        color: #000000;
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-weight: 800;
+        font-size: 2.5rem;
+      }
+      .mermaid {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .mermaid svg {
+        max-width: 100%;
+        height: auto;
+        font-family: "Segoe UI", Arial, sans-serif !important;
+      }
+      .mermaid svg text {
+        font-weight: 700 !important;
+        fill: #000000 !important;
+      }
+    </style>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          fontSize: "16px",
+          fontFamily: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif",
+          primaryColor: "#e3f2fd",
+          primaryTextColor: "#000000",
+          primaryBorderColor: "#1565c0",
+          lineColor: "#2c3e50",
+          edgeLabelBackground: "#ffffff",
+        },
+        flowchart: {
+          curve: "basis",
+          padding: 15,
+          nodeSpacing: 40,
+          rankSpacing: 50,
+        },
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Firmware ECG Acquisition & Streaming Flow</h1>
+      <div class="mermaid">
+        flowchart TD
+            classDef startEnd fill:#c8e6c9,stroke:#2e7d32,stroke-width:4px,color:#000,rx:20px,ry:20px;
+            classDef action fill:#bbdefb,stroke:#1565c0,stroke-width:4px,color:#000,rx:8px,ry:8px;
+            classDef decision fill:#fff9c4,stroke:#f57f17,stroke-width:4px,color:#000,rx:8px,ry:8px;
+            classDef io fill:#e1bee7,stroke:#6a1b9a,stroke-width:4px,color:#000,rx:8px,ry:8px;
+            classDef config fill:#ffe0b2,stroke:#e65100,stroke-width:4px,color:#000,rx:8px,ry:8px;
+
+            A([Pico Boot]):::startEnd
+            B[SPI Config: 1MHz<br/>SCK=18 MOSI=19 MISO=16]:::config
+            C[CS Pin 17 HIGH]:::config
+            D[SW_RST + Wait 100ms]:::config
+            E[CNFG_GEN: 0x080000]:::config
+            F[CNFG_CAL: 0x000000]:::config
+            G[CNFG_EMUX: 0x000000]:::config
+            H[CNFG_ECG: 0x805000]:::config
+            I[CNFG_RTOR1: 0x3FC600]:::config
+            J[FIFO_RST & SYNCH]:::config
+            K[Init Packet 19 bytes]:::action
+            L[hr_bpm=0, rr_ms=0]:::action
+            
+            A --> B --> C --> D
+            D --> E --> F --> G
+            G --> H --> I --> J
+            J --> K --> L
+            
+            M((Loop)):::startEnd
+            L --> M
+            
+            N[Read ECG_FIFO]:::action
+            O[Extract: raw >> 6]:::action
+            P{> 131071?}:::decision
+            Q[ecg -= 262144]:::action
+            R[Pack ECG Bytes 5-8]:::action
+            
+            M --> N --> O --> P
+            P -->|Yes| Q --> R
+            P -->|No| R
+            
+            S[Read RTOR]:::action
+            T[Extract: >> 10 & 0x3FFF]:::action
+            U{rtor > 0?}:::decision
+            V[HR = 7680/rtor]:::action
+            W[RR = rtor*1000/128]:::action
+            X[Keep Previous]:::action
+            
+            R --> S --> T --> U
+            U -->|Beat| V --> W --> Y
+            U -->|None| X --> Y
+            
+            Y[Pack RR Bytes 9-10]:::action
+            Z[Pack HR Bytes 13-14]:::action
+            AA[/TX 19-Byte Packet/]:::io
+            BB[Sleep 8ms]:::action
+            
+            Y --> Z --> AA --> BB --> M
+      </div>
+    </div>
+  </body>
+</html>
