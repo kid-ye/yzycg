@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "eraser-diagrams": {
+      "source": "eraserlabs/eraser-io",
+      "sourceType": "github",
+      "skillPath": "skills/eraser-diagrams/SKILL.md",
+      "computedHash": "6c14b60c461d8b290caa9e82dd42239b9b03c045edbdc7ded3bffea65ba8ad43"
+    }
+  }
+}

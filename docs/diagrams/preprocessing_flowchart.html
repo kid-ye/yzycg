@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ECG Preprocessing Pipeline Flowchart</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 16px;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 2vh 2vw;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 96vh;
+        box-sizing: border-box;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 100%;
+        max-width: 1000px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-grow: 1;
+      }
+      h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-weight: 600;
+        font-size: 1.5rem;
+      }
+      .mermaid {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      /* Crucial constraint to keep SVG within visible screen limit */
+      .mermaid svg {
+        max-width: 100%;
+        max-height: 75vh;
+        height: auto;
+      }
+    </style>
+    <!-- Load Mermaid.js -->
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          fontSize: "16px",
+          primaryColor: "#e0f7fa",
+          primaryTextColor: "#333333",
+          primaryBorderColor: "#00838f",
+          lineColor: "#546e7a",
+        },
+        flowchart: {
+          curve: "basis",
+          padding: 15,
+        },
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>ECG Preprocessing Pipeline</h1>
+      <div class="mermaid">
+        flowchart TD classDef input
+        fill:#27ae60,stroke:#219653,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+        classDef process
+        fill:#2980b9,stroke:#2471a3,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+        classDef decision
+        fill:#f39c12,stroke:#d68910,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+        classDef seg
+        fill:#8e44ad,stroke:#7d3c98,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+        classDef output
+        fill:#c0392b,stroke:#a93226,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+        A[Raw ECG Signal<br />PTBDB Server / MAX30003 Sensor]:::input --> B[Data
+        Ingestion<br />Load Lead I & Resample to 200 Hz]:::process B --> C[Noise
+        Reduction<br />Bandpass Filter: 0.5 Hz - 40.0 Hz]:::process C -->
+        D{Select Segmentation Method}:::decision D -->|NPD Method| E[No Peak
+        Detection<br />Random 1000-sample slice]:::seg D -->|R2R Method|
+        F[R-Peak to R-Peak Detection<br />Find R-peaks, resample to 200,<br />merge
+        5 beats = 1000 samples]:::seg D -->|P2T Method| G[P-Wave to T-Wave
+        Detection<br />Use DWT, resample to 200,<br />merge 5 beats = 1000
+        samples]:::seg E --> H[Amplitude Normalization<br />Scale range to -512
+        to +512]:::process F --> H G --> H H --> I[Processed Output Segment<br />Shape:
+        1x1000 Array]:::output
+      </div>
+    </div>
+  </body>
+</html>

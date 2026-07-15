@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MAX30003 Initialization Flowchart</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 16px;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 2vh 2vw;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 96vh;
+        box-sizing: border-box;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 100%;
+        max-width: 1000px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-grow: 1;
+      }
+      h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-weight: 600;
+        font-size: 1.5rem;
+      }
+      .mermaid {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      /* Crucial constraint to keep SVG within visible screen limit */
+      .mermaid svg {
+        max-width: 100%;
+        max-height: 75vh;
+        height: auto;
+      }
+    </style>
+    <!-- Load Mermaid.js -->
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          fontSize: "18px",
+          primaryColor: "#e0f7fa",
+          primaryTextColor: "#333333",
+          primaryBorderColor: "#00838f",
+          lineColor: "#546e7a",
+        },
+        flowchart: {
+          curve: "linear",
+          padding: 15,
+        },
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>MAX30003 Initialization Sequence</h1>
+      <div class="mermaid">
+        flowchart TB classDef start
+        fill:#2ecc71,stroke:#27ae60,stroke-width:2px,color:#fff,rx:20px,ry:20px;
+        classDef step
+        fill:#3498db,stroke:#2980b9,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+        classDef endNode
+        fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff,rx:20px,ry:20px;
+        A([Start: SPI Init<br />1MHz, Mode 0, CS High]):::start --> B[SW_RST
+        0x08<br />Software Reset & 100ms delay]:::step B --> C[CNFG_GEN 0x10<br />Enable
+        ECG Channel]:::step C --> D[CNFG_CAL 0x12<br />Disable
+        Calibration]:::step D --> E[CNFG_EMUX 0x14<br />Normal ECG Input]:::step
+        E --> F[CNFG_ECG 0x15<br />Gain=20V/V, Rate=128sps]:::step F -->
+        G[CNFG_RTOR1 0x1D<br />Enable R-to-R Detection]:::step G --> H[FIFO_RST
+        0x0A<br />Reset Data FIFO]:::step H --> I([SYNCH 0x09<br />Start
+        Conversion & Streaming]):::endNode
+      </div>
+    </div>
+  </body>
+</html>
